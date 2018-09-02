@@ -4,10 +4,11 @@ using System.Collections.Generic;
 
 
 public class Tile : MonoBehaviour {
-  private static Color LAND_COLOR = new Color(1,1,1);
+  private static Color LAND_COLOR = new Color(146/255f, 186/255f, 89/255f);
   private static Color SEA_COLOR = new Color(0,0,0);
   private static Color SELECTED_R_COLOR = new Color(1,0.9f,0);
   private static Color SELECTED_T_COLOR = new Color(1,0.4f,0);
+
   public GuiManager gui_manager;
 	public TileSelection adjacent = new TileSelection();
   public Region region;
@@ -35,20 +36,13 @@ public class Tile : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-    if(gui_manager.selected_tiles.Contains(this)){
-      this.GetComponent<SpriteRenderer>().color = SELECTED_T_COLOR;
-      return;
+    var rend = GetComponent<MeshRenderer>();
+    rend.enabled = this.land;
+    if(gui_manager.selected_region == this.region && gui_manager.selected_region != null){
+        rend.material.color = SELECTED_R_COLOR;
+        return;
     }
-
-    if(region != null && gui_manager.selected_region == this.region){
-      this.GetComponent<SpriteRenderer>().color = SELECTED_R_COLOR;
-    }else{
-      if(this.IsBorder()){
-        this.GetComponent<SpriteRenderer>().color = this.region.color;
-      }else{
-        this.GetComponent<SpriteRenderer>().color = this.land ? LAND_COLOR : SEA_COLOR;
-      }
-    }
+    rend.material.color = LAND_COLOR;
 	}
   public string CoordString(){
     return x+", "+y;

@@ -46,7 +46,7 @@ public class MapGen : MonoBehaviour {
 		for(var x = 0; x < width; x++){
 				for(var y = 0; y < height; y++){
 					var pos = this.transform.position;
-					pos += new Vector3((x-width/2)*tileWidth,(y-height/2)*tileWidth,0);
+					pos += new Vector3((x-width/2)*tileWidth, 0, (y-height/2)*tileWidth);
 					var t = Instantiate(base_tile, pos, Quaternion.identity) as Tile;
 					t.x = x;
 					t.y = y;
@@ -94,7 +94,6 @@ public class MapGen : MonoBehaviour {
 					t.x = x;
 					t.y = y;
 					grid[x,y] = t;
-					t.GetComponent<SpriteRenderer>().color = new Color(0,0,0);
 				}
 			}
 			/************************/ Stamp("Building Land");
