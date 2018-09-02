@@ -51,6 +51,7 @@
      <Compile Include="Assets\Noise.cs" />
      <Compile Include="Assets\Region.cs" />
      <Compile Include="Assets\Tile.cs" />
+     <Compile Include="Assets\TileSelection.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>/opt/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>

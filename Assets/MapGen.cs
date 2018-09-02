@@ -25,6 +25,8 @@ public class MapGen : MonoBehaviour {
 	private static string last_marker = "Pre Init";
 	private static Dictionary<string, double> times = new Dictionary<string, double>();
 
+
+
 	public static void Stamp(string new_marker){
 		var t = Time.realtimeSinceStartup;
 		if(last_timestamp!=-1){
@@ -79,13 +81,15 @@ public class MapGen : MonoBehaviour {
 	}
 
 	public IEnumerator Generate() {
+		var image_scale = 10;
+		image_scale =  heightmap.width / this.width;
+		image_scale =  Math.Max(image_scale, heightmap.height / this.height);
 
 		/************************/ Stamp("Init and Preinit");
 		for(var x = 0; x < width; x++){
 				for(var y = 0; y < height; y++){
 					var t = grid[x,y];
-					t.land = x!=0;
-					// heightmap.GetPixel(x*10, y*10).grayscale < 0.5f;
+					t.land =  heightmap.GetPixel(x*image_scale, y*image_scale).grayscale < 0.5f;
 					//Perlin.OctavePerlin(x*scale+x_offset,y*scale+y_offset,0,7,0.3) < land_threshold;
 					t.x = x;
 					t.y = y;
@@ -103,24 +107,24 @@ public class MapGen : MonoBehaviour {
 			land = MapGen.Shrink(land);
 			land = MapGen.Shrink(land);
 			land = MapGen.Shrink(land);
-			/************************/ Stamp("Returning True");
-		 	return true;
+
 			/************************/ Stamp("Seperating into base regions");
 			var selection_list = SeperateContiguous(land);
 
+			yield return new WaitForSeconds(0);
 			/************************/ Stamp("Expanding into base regions");
-			MapGen.ExpandRegions(selection_list);
-
+			selection_list = MapGen.ExpandRegions(selection_list);
+			yield return new WaitForSeconds(0);
 
 			/************************/ Stamp("Finding Islands");
-			var island_tiles = new List<Tile>();
-			foreach(var t in this.All()){
+			var island_tiles = new TileSelection();
+			foreach(var t in this.All().tiles){
 				if(!t.land){
 					continue;
 				}
 				bool in_region = false;
 				foreach(var region in selection_list){
-					if(region.IndexOf(t)!=-1){
+					if(region.Contains(t)){
 						in_region = true;
 					}
 				}
@@ -132,12 +136,6 @@ public class MapGen : MonoBehaviour {
 			var island_selections = SeperateContiguous(island_tiles);
 			selection_list.AddRange(island_selections);
 
-			/*var too_small_region_tiles = new List<List<Tile>>();
-			foreach(var region_tiles in selection_list){
-				if(region_tiles.Count < min_size){
-					too_small_region_tiles.Add(region_tiles);
-				}
-			}*/
 
 
 			Color[] colors = new[] {new Color(0.6f,0.1f,0.1f), new Color(0,0.6f,0), new Color(0,0,0.6f),
@@ -146,6 +144,7 @@ public class MapGen : MonoBehaviour {
 								new Color(0.6f,0.5f,0.5f), new Color(0.5f,0,1), new Color(0,0.6f,0.4f)};
 
 			/************************/ Stamp("Founding Region Objects");
+			yield return new WaitForSeconds(0);
 			var i = 0;
 			foreach(var region_tiles in selection_list){
 				i++;
@@ -153,43 +152,43 @@ public class MapGen : MonoBehaviour {
 				var region = new Region();
 				this.regions.Add(region);
 				region.color = colors[i];
-				foreach(var t in region_tiles){
+				foreach(var t in region_tiles.tiles){
 					region.Assign(t);
 				}
 			}
-			yield return new WaitForSeconds(0);
 			for(var splitcount = 0; splitcount < 20; splitcount++){
-				foreach(var too_big_region in this.regions.FindAll((r)=>r.tiles.Count > max_size)){
+				foreach(var too_big_region in this.regions.FindAll((r)=>r.tiles.Count() > max_size)){
 					/************************/ Stamp("Spliting Region");
-					yield return new WaitForSeconds(1);
+					yield return new WaitForSeconds(2);
 					i++;
 					i = i % colors.Length;
 					var region = new Region();
 					region.color = colors[i];
 					this.regions.Add(region);
 					too_big_region.Split(region);
-					_gui_manager.selected_tiles = new List<Tile>();
+					_gui_manager.selected_tiles = new TileSelection();
 				}
 			}
-			_gui_manager.selected_tiles = new List<Tile>();
+			_gui_manager.selected_tiles = new TileSelection();
 
 			/************************/ Stamp("Merging in Islands");
-			foreach(var too_small_region in this.regions.FindAll((r)=>r.tiles.Count < min_size)){
+
+			foreach(var too_small_region in this.regions.FindAll((r)=>r.tiles.Count() < min_size)){
 				yield return new WaitForSeconds(0);
-				if(too_small_region.tiles.Count != 0){
+				if(too_small_region.tiles.Count() != 0){
 					too_small_region.MergeInto(too_small_region.ClosestRegion());
 					_gui_manager.selected_tiles = too_small_region.tiles;
 				}
 			}
 
-		_gui_manager.selected_tiles = new List<Tile>();
-		UnityEngine.Profiler.EndSample();
+		_gui_manager.selected_tiles = new TileSelection();
+
 		/************************/ Stamp("Finished");
 		yield return new WaitForSeconds(0);
 	}
 
-	public List<Tile> All(){
-		List<Tile> result = new List<Tile>();
+	public TileSelection All(){
+		TileSelection result = new TileSelection();
 		for(var x = 0; x < width; x++){
 				for(var y = 0; y < height; y++){
 					result.Add(grid[x,y]);
@@ -198,12 +197,12 @@ public class MapGen : MonoBehaviour {
 		return result;
 	}
 
-	public static List<Tile> Shrink(List<Tile> tiles){
-		List<Tile> result = new List<Tile>();
-		foreach(var t in tiles){
+	public static TileSelection Shrink(TileSelection tiles){
+		TileSelection result = new TileSelection();
+		foreach(var t in tiles.tiles){
 			bool valid = true;
-			foreach(var n in t.adjacent){
-				if(tiles.IndexOf(n) == -1){
+			foreach(var n in t.adjacent.tiles){
+				if(tiles.DoesNotContain(n)){
 					valid = false;
 					break;
 				}
@@ -216,50 +215,47 @@ public class MapGen : MonoBehaviour {
 		return result;
 	}
 
-	public static List<Tile> Grow(List<Tile> tiles){
+	public static TileSelection Grow(TileSelection tiles){
 		var time = Time.realtimeSinceStartup;
-		List<Tile> result = new List<Tile>();
-		foreach(var t in tiles){
-			if(result.IndexOf(t) == -1){
-				result.Add(t);
-			}
-			foreach(var n in t.adjacent){
-				if(result.IndexOf(n) == -1){
-					result.Add(n);
-				}
+		TileSelection result = new TileSelection();
+		foreach(var t in tiles.tiles){
+			result.Add(t);
+			foreach(var n in t.adjacent.tiles){
+				result.Add(n);
 			}
 		}
 		_gui_manager.selected_tiles = result;
 		return result;
 	}
 
-	public static void ExpandRegions(List<List<Tile>> selection_list){
-		var total_count = 0;
-		foreach(var region in selection_list){
-			total_count += region.Count;
-		}
-		var itr_count = 0;
-		while(true){
-			itr_count++;
-			if(itr_count > 100){
-				throw(new Exception("Expanding took too long"));
-			}
+	public static List<TileSelection> ExpandRegions(List<TileSelection> selection_list){
+		List<TileSelection> result = new List<TileSelection>();
+		var count = 0;
+		while(selection_list.Count > 0){
+			count++;
+			if(count>1000) throw new Exception("Expanding Regions took too long");
+
 			for(var i = 0; i < selection_list.Count; i++){
-				var expanded = MapGen.Grow(selection_list[i]);
-				for(var j = 0; j < expanded.Count; j++){
+				var expanded = Grow(selection_list[i]);
+				for(var j = 0; j < expanded.Count(); j++){
 					var t = expanded[j];
 					//If its in the sea, reject
 					if(!t.land){
 						expanded.Remove(t);
 						j--;
 					}
-					//If its in another region3, reject
+					//If its in another region, reject
 					var inAnotherRegion = false;
-					foreach(var region in selection_list){
-						if(region != selection_list[i]){
-							if(region.IndexOf(t) != -1){
+					foreach(var selection in selection_list){
+						if(selection != selection_list[i]){
+							if(selection.Contains(t)){
 								inAnotherRegion = true;
 							}
+						}
+					}
+					foreach(var selection in result){
+						if(selection.Contains(t)){
+							inAnotherRegion = true;
 						}
 					}
 					if(inAnotherRegion){
@@ -267,33 +263,29 @@ public class MapGen : MonoBehaviour {
 						j--;
 					}
 				}
-				selection_list[i] = expanded;
-			}
-
-			//Break if no change
-			var new_count = 0;
-			foreach(var region in selection_list){
-				new_count += region.Count;
-			}
-			if(total_count == new_count){
-				return;
-			}else{
-				total_count = new_count;
+				if(expanded.Count() == selection_list[i].Count()){
+					result.Add(expanded);
+					selection_list.RemoveAt(i);
+					i--;
+				}else{
+					selection_list[i] = expanded;
+				}
 			}
 		}
+		return result;
 	}
 
-	public static List<List<Tile>> SeperateContiguous(List<Tile> tiles){
+	public static List<TileSelection> SeperateContiguous(TileSelection tiles){
 		var time = Time.realtimeSinceStartup;
-		List<Tile> src = new List<Tile>();
-		List<List<Tile>> result = new List<List<Tile>>();
-		foreach(var t in tiles){
+		TileSelection src = new TileSelection();
+		List<TileSelection> result = new List<TileSelection>();
+		foreach(var t in tiles.tiles){
 			src.Add(t);
 		}
-		while(src.Count > 0){
+		while(src.Count() > 0){
 			var region = MapGen.SelectContiguous(src[0], src);
 			result.Add(region);
-			foreach(var t in region){
+			foreach(var t in region.tiles){
 				src.Remove(t);
 			}
 		}
@@ -301,22 +293,22 @@ public class MapGen : MonoBehaviour {
 	}
 
 
-	public static List<Tile> SelectContiguous(Tile start, List<Tile> tiles){
+	public static TileSelection SelectContiguous(Tile start, TileSelection tiles){
 		var time = Time.realtimeSinceStartup;
-		List<Tile> result = new List<Tile>();
-		List<Tile> open = new List<Tile>();
+		TileSelection result = new TileSelection();
+		TileSelection open = new TileSelection();
 		open.Add(start);
 		var i = 0;
-		while(open.Count > 0){
+		while(open.Count() > 0){
 			i++;
-			if(i > tiles.Count){
+			if(i > tiles.Count()){
 				throw(new Exception("Fill fail"));
 			}
 			var t = open[0];
-			open.RemoveAt(0);
+			open.Remove(t);
 			result.Add(t);
-			foreach(var n in t.adjacent){
-				if(result.IndexOf(n) == -1 && open.IndexOf(n) == -1 && tiles.IndexOf(n) != -1){
+			foreach(var n in t.adjacent.tiles){
+				if(result.DoesNotContain(n) && tiles.Contains(n)){
 					open.Add(n);
 				}
 			}
@@ -329,35 +321,34 @@ public class MapGen : MonoBehaviour {
     public Tile t;
     public int cost;
   }
-	public static Region ClosestRegion(List<Tile> tiles, Region to_ignore = null){
+	public static Region ClosestRegion(TileSelection tiles, Region to_ignore = null, HashSet<Region> whitelist = null){
 		var open = new List<SearchRecord>();
-		var openTiles = new List<Tile>();
-		var closed = new List<Tile>();
-		foreach(var t in tiles){
-			if(t.adjacent.FindAll((n)=>n.region != t.region).Count > 0){
-				var record = new SearchRecord();
-				record.t = t;
-				record.cost = 0;
-				open.Add(record);
-			}else{
-				closed.Add(t);
-			}
+		var openTiles = new TileSelection();
+		var closed = new TileSelection();
+		foreach(var t in tiles.tiles){
+			var record = new SearchRecord();
+			record.t = t;
+			record.cost = 0;
+			open.Add(record);
 		}
 		var i = 0;
 		while(open.Count > 0){
 			i++;
-			if(i > 10000){
+			if(i > 1000){
 				throw(new Exception("Finding closest Region took too long"));
 			}
+			open.Sort((a, b) => a.cost - b.cost);
 			var node = open[0];
 			closed.Add(node.t);
 			open.RemoveAt(0);
 			openTiles.Remove(node.t);
 			if(node.t.region != null && node.t.region != to_ignore){
-				return node.t.region;
+				if(whitelist == null || whitelist.Contains(node.t.region)){
+					return node.t.region;
+				}
 			}
-			foreach(var n in node.t.adjacent){
-				if(closed.IndexOf(n) == -1 && openTiles.IndexOf(n) == -1){
+			foreach(var n in node.t.adjacent.tiles){
+				if(closed.DoesNotContain(n) && openTiles.DoesNotContain(n)){
 					var record = new SearchRecord();
 					record.t = n;
 					record.cost = node.cost + 1;
@@ -368,7 +359,7 @@ public class MapGen : MonoBehaviour {
 		}
 		_gui_manager.selected_region = null;
 		_gui_manager.selected_tiles = tiles;
-		throw new Exception("Could not find any other Regions");
+		throw new Exception("Could not find any other Regions after "+i+" iterations");
 	}
 
 	// Update is called once per frame

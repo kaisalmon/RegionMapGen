@@ -9,7 +9,7 @@ public class Tile : MonoBehaviour {
   private static Color SELECTED_R_COLOR = new Color(1,0.9f,0);
   private static Color SELECTED_T_COLOR = new Color(1,0.4f,0);
   public GuiManager gui_manager;
-	public List<Tile> adjacent = new List<Tile>();
+	public TileSelection adjacent = new TileSelection();
   public Region region;
   public int x, y;
   public bool land = false;
@@ -27,15 +27,15 @@ public class Tile : MonoBehaviour {
     if(region == null){
       return false;
     }
-    if(adjacent.FindAll((t)=>t.region != this.region).Count > 0){
+    if(adjacent.FindAll((t)=>t.region != this.region).Count() > 0){
       return true;
     }
-    return adjacent.Count != 4;
+    return adjacent.Count() != 4;
   }
 
 	// Update is called once per frame
 	void Update () {
-    if(gui_manager.selected_tiles.IndexOf(this) != -1){
+    if(gui_manager.selected_tiles.Contains(this)){
       this.GetComponent<SpriteRenderer>().color = SELECTED_T_COLOR;
       return;
     }

@@ -73,5 +73,6 @@ Assets/MapGen.cs
 Assets/Noise.cs
 Assets/Region.cs
 Assets/Tile.cs
+Assets/TileSelection.cs
 -r:/opt/Unity/Editor/Data/Mono/lib/mono/unity/System.Runtime.Serialization.dll
 -r:/opt/Unity/Editor/Data/Mono/lib/mono/unity/System.Xml.Linq.dll
