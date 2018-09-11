@@ -10,6 +10,7 @@ public class Tile : MonoBehaviour {
   private static Color SELECTED_T_COLOR = new Color(1,0.4f,0);
 
   public GuiManager gui_manager;
+  public MeshRender mesh_render;
 	public TileSelection adjacent = new TileSelection();
   public Region region;
   public int x, y;
@@ -36,13 +37,15 @@ public class Tile : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-    var rend = GetComponent<MeshRenderer>();
-    rend.enabled = this.land;
+    var pos = this.transform.position;
+    mesh_render.enabled = this.land;
     if(gui_manager.selected_region == this.region && gui_manager.selected_region != null){
-        rend.material.color = SELECTED_R_COLOR;
+    //    rend.material.color = SELECTED_R_COLOR;
+      this.transform.position = new Vector3(pos.x, 0.5f, pos.z);
         return;
     }
-    rend.material.color = LAND_COLOR;
+      this.transform.position = new Vector3(pos.x, 0, pos.z);
+  //  rend.material.color = LAND_COLOR;
 	}
   public string CoordString(){
     return x+", "+y;

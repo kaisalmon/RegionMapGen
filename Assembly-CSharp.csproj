@@ -52,6 +52,9 @@
      <Compile Include="Assets\Region.cs" />
      <Compile Include="Assets\Tile.cs" />
      <Compile Include="Assets\TileSelection.cs" />
+     <Compile Include="Assets\TurnOnDepthBuffer.cs" />
+     <None Include="Assets\shaders\intersection_hightlight.shader" />
+     <None Include="Assets\shaders\depth_shader.shader" />
  <Reference Include="UnityEngine.UI">
  <HintPath>/opt/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>

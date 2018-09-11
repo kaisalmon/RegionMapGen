@@ -42,7 +42,7 @@ public class MapGen : MonoBehaviour {
 
 		this.grid = new Tile[width, height];
 		UnityEngine.Random.seed = seed;
-		float tileWidth = (float)base_tile.GetComponent<Renderer>().bounds.size.x;
+		float tileWidth = (float)base_tile.GetComponent<Renderer>().bounds.size.x - 0.1f;
 		for(var x = 0; x < width; x++){
 				for(var y = 0; y < height; y++){
 					var pos = this.transform.position;
@@ -89,8 +89,8 @@ public class MapGen : MonoBehaviour {
 		for(var x = 0; x < width; x++){
 				for(var y = 0; y < height; y++){
 					var t = grid[x,y];
-					t.land =  heightmap.GetPixel(x*image_scale, y*image_scale).grayscale < 0.5f;
-					//Perlin.OctavePerlin(x*scale+x_offset,y*scale+y_offset,0,7,0.3) < land_threshold;
+					//t.land =  heightmap.GetPixel(x*image_scale, y*image_scale).grayscale < 0.5f;
+					t.land = Perlin.OctavePerlin(x*scale+x_offset,y*scale+y_offset,0,7,0.3) < land_threshold;
 					t.x = x;
 					t.y = y;
 					grid[x,y] = t;
@@ -182,6 +182,15 @@ public class MapGen : MonoBehaviour {
 
 		_gui_manager.selected_tiles = new TileSelection();
 
+		/************************/ Stamp("Removing Edge Regions");
+		foreach(var region in this.regions){
+			if(region.tiles.Any((t) => t.adjacent.Count() != 4)){
+				foreach(var t in region.tiles.ToList()){
+					t.land = false;
+					t.region = null;
+				}
+			}
+		}
 		/************************/ Stamp("Finished");
 		yield return new WaitForSeconds(0);
 	}

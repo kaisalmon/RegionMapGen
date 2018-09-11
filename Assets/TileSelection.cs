@@ -33,6 +33,9 @@ public class TileSelection{
 	public TileSelection FindAll(Predicate<Tile> test){
 		return new TileSelection(ToList().FindAll(test));
 	}
+	public bool Any(Predicate<Tile> test){
+		return ToList().Find(test) != null;
+	}
 	public bool Contains(Tile t){
 		return tiles.Contains(t);
 	}
